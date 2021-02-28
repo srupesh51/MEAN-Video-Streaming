@@ -79,10 +79,10 @@ export class UpdateComponent implements OnInit {
     this.videoService.update(this.videoId, formData)
       .subscribe(
         data => {
-          this.toastr.success('Video Uploaded.', 'Success');
+          this.toastr.success('Video Updated.', 'Success');
           this.router.navigate(['/videos']);
         }, err => {
-          this.toastr.error('Unable to upload video. Please, try again later.', 'Error');
+          this.toastr.error('Unable to update video. Please, try again later.', 'Error');
           this.loading = false;
         });
   }
