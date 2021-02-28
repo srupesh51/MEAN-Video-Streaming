@@ -20,14 +20,16 @@ export class AuthComponent implements OnInit {
 
   ngOnInit() {
     // check for user logged in
-    if (this.authService.isAuthenticated()) {
+    /*if (this.authService.isAuthenticated()) {
       this.router.navigate(['/videos']);
-    }
+    }*/
+
+    this.router.navigate(['/videos']);
   }
 
   login(): void {
     // validate form
-    if (!this.user.username || !this.user.password) {
+    /*if (!this.user.username || !this.user.password) {
       return;
     }
     // send login request
@@ -42,7 +44,9 @@ export class AuthComponent implements OnInit {
         },
         err => {
           this.toastr.error('Invalid login credentials. Please try again.', 'Error');
-        });
+        });*/
+
+    this.router.navigate(['/videos']);
   }
 
   signup(): void {

@@ -19,7 +19,8 @@ export class ListComponent implements OnInit {
     this.videoService.list()
       .subscribe(
         data => {
-          this.videos = data;
+          console.log(data);
+          this.videos = data.data.message;
           this.loaded = true;
         }, err => {
           this.loaded = true;

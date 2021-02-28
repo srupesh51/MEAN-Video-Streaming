@@ -1,7 +1,7 @@
 import {BrowserModule} from '@angular/platform-browser';
 import {NgModule} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {FormsModule} from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 
 import {AppComponent} from './app.component';
 import {AuthComponent} from './auth/auth.component';
@@ -23,6 +23,7 @@ import {NgbModule} from '@ng-bootstrap/ng-bootstrap';
 import {AuthService} from './_services/auth.service';
 import {VideoService} from './_services/video.service';
 import {NgMathPipesModule} from 'angular-pipes';
+import { UpdateComponent } from './videos/update/update.component';
 
 @NgModule({
   declarations: [
@@ -34,17 +35,19 @@ import {NgMathPipesModule} from 'angular-pipes';
     AddComponent,
     PageNotFoundComponent,
     FeatherIconsPipe,
+    UpdateComponent,
   ],
   imports: [
+    AppRoutingModule,
     BrowserModule,
     CommonModule,
     FormsModule,
-    AppRoutingModule,
+    ReactiveFormsModule,
     HttpClientModule,
     BrowserAnimationsModule,
     NgMathPipesModule,
     ToastrModule.forRoot(),
-    NgbModule.forRoot()
+    NgbModule
   ],
   providers: [
     AuthGuard,

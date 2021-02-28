@@ -1,0 +1,16 @@
+{
+  "env": {
+    "NODE_ENV": "development",
+    "MONGO_DB_USERNAME": "dbuser",
+    "MONGO_DB_PASSWORD": "password",
+    "MONGO_DB_DATABASE": "myvideos",
+    "MONGO_DB_HOST": "@localhost",
+    "MONGO_DB_PORT": "27017",
+    "SERVER_PORT": 4000,
+    "AWS_CUSTOM_S3_BUCKET": "mysamvideo",
+    "AWS_CUSTOM_ACCESS_KEY_ID": "AKIAIKPTPRWCK5D5JD4Q",
+    "AWS_CUSTOM_ACCESS_SECRET_KEY": "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",
+    "AWS_CUSTOM_S3_REGION": "us-east-2",
+    "VIDEO_PATH": "assets/videos/"
+  }
+}

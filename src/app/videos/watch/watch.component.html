@@ -14,18 +14,24 @@
             </div>
             <table class="table table-borderless">
               <tbody>
-              <tr>
-                <td><strong>Name:</strong></td>
-                <td>{{video.title}}</td>
-              </tr>
-              <tr>
-                <td><strong>Size:</strong></td>
-                <td>{{video.size | bytes}}</td>
-              </tr>
-              <tr>
-                <td><strong>Created Date:</strong></td>
-                <td>{{video.created | date : 'mediumDate'}}</td>
-              </tr>
+                <tr>
+                  <td><strong>Name:</strong></td>
+                  <td>{{video.VideoTitle}}</td>
+                </tr>
+                <tr>
+                  <td><strong>Created Date:</strong></td>
+                  <td>{{video.createdOn | date : 'mediumDate'}}</td>
+                  <td>
+                    <button class="btn btn-primary d-flex flex-row align-items-center" (click)="deleteVideo()">
+                      <span class="svg-icon mr-2" [innerHTML]="'delete' | feather:18"></span>Delete
+                    </button>
+                  </td>
+                  <td>
+                    <button class="btn btn-primary d-flex flex-row align-items-center" (click)="updateVideo()">
+                      <span class="svg-icon mr-2" [innerHTML]="'arrow-right' | feather:16"></span>Update
+                    </button>
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>

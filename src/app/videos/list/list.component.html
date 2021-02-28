@@ -16,14 +16,12 @@
               <tr>
                 <th>Name</th>
                 <th>Created</th>
-                <th>Size</th>
               </tr>
               </thead>
               <tbody>
               <tr *ngFor="let v of videos">
-                <td><a [routerLink]="['/videos/watch', v.id]">{{v.title}}</a></td>
-                <td>{{v.created | date: 'mediumDate'}}</td>
-                <td>{{v.size | bytes}}</td>
+                <td><a [routerLink]="['/videos/watch', v._id]">{{v.VideoTitle}}</a></td>
+                <td>{{v.createdOn | date: 'mediumDate'}}</td>
               </tr>
               </tbody>
             </table>
