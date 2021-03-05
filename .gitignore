@@ -2,3 +2,4 @@
 /backends/assets/videos
 /backends/node_modules
 /node_modules
+/backends/nodemon.json
