@@ -29,6 +29,58 @@ exports.getVideo = (req, res, next) => {
   });
 }
 
+exports.startUpload = (req, res, next) => {
+   awsFileService.createMultiPartUpload(req.body.video_file,
+    req.body.video_type).then((success) => {
+      res.status(200).json({
+        data: {
+          uploadId: success.UploadId
+        }
+      });
+    }).catch((err) => {
+        return res.status(500).json({
+          data: {
+            message: err.message
+          }
+        })
+    });
+}
+
+exports.getUploadUrl = (req, res, next) => {
+    awsFileService.signedUrl(req.body.fileName, {
+      PartNumber: parseInt(req.body.partNumber),
+      UploadId: req.body.uploadId
+    }).then((success) => {
+      res.status(200).json({
+        data: {
+          presignedUrl: success
+        }
+      });
+    }).catch((err) => {
+        return res.status(500).json({
+          data: {
+            message: err.message
+          }
+        })
+    });
+}
+
+exports.completeUpload = (req, res, next) => {
+  awsFileService.completeMultiPartUpload(req.body.fileName, {
+      Parts: JSON.parse(req.body.parts),
+      UploadId: req.body.uploadId
+    }).then((success) => {
+      res.status(200).json({
+        data: success
+      });
+    }).catch((err) => {
+       return res.status(500).json({
+          data: {
+            message: err.message
+          }
+        })
+    });
+}
 
 exports.uploadVideo = async (req, res, next) => {
   /*console.log(req.file);*/
@@ -60,7 +112,11 @@ exports.uploadVideo = async (req, res, next) => {
     } else {
 
       let videoLink = undefined;
-      await awsFileService.upload(req.file.originalname, req.body.video_type, fileData).then(success => {
+      const options = {
+        partSize: 10 * 1024 * 1024,
+        queueSize: 5,
+      };
+      await awsFileService.upload(req.file.originalname, req.body.video_type, fileData, options).then(success => {
         console.log(success);
         videoLink = success.Location;
       }).catch(err => {
@@ -294,9 +350,9 @@ exports.listVideos = (req, res, next) => {
         }
       });
     } else {
-      res.status(400).json({
+      res.status(200).json({
         data: {
-          message: "Unable to retrieve Videos. Hence Exiting!"
+          message: []
         }
       });
     }

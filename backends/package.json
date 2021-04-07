@@ -11,7 +11,7 @@
     "NodeJS\""
   ],
   "dependencies": {
-    "aws-sdk": "^2.460.0",
+    "aws-sdk": "^2.881.0",
     "cors": "^2.8.5",
     "express": "^4.17.0",
     "filereader": "^0.10.3",

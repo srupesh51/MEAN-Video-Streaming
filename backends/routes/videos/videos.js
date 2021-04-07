@@ -10,5 +10,7 @@ router.get('/list', videoController.listVideos);
 router.get('/download/:id', videoController.downloadVideo);
 router.delete('/delete/:id', videoController.deleteVideo);
 router.put('/update/:id', imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH }), videoController.updateVideo);
-
+router.post('/start-upload', imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.startUpload);
+router.put('/get-upload-url',imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.getUploadUrl);
+router.put('/complete-upload', imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.completeUpload);
 module.exports = router;

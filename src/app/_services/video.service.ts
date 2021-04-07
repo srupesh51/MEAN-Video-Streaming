@@ -1,6 +1,7 @@
 import {Injectable} from '@angular/core';
 import { HttpClient, HttpHeaders} from '@angular/common/http';
 import {Observable} from 'rxjs';
+import axios from 'axios';
 
 @Injectable()
 export class VideoService {
@@ -47,4 +48,27 @@ export class VideoService {
   upload(formData: any): Observable<any> {
     return this.http.post<any>(this.API_URL + 'videos/upload', formData);
   }
+
+  startUpload(formData: any): Observable<any> {
+    return this.http.post<any>(this.API_URL + 'videos/start-upload', formData);
+  }
+
+  getUploadUrl(formData: any) {
+    //return this.http.put<any>(this.API_URL + 'videos/get-upload-url', formData);
+    return axios.put(this.API_URL + 'videos/get-upload-url', formData);
+  }
+
+  completeUpload(formData: any) : Observable<any> {
+    return this.http.put<any>(this.API_URL + 'videos/complete-upload', formData);
+  }
+
+  getSignedURL(presignedUrl, blob, fileType) {
+    return axios.put(presignedUrl, blob, {
+          headers: {
+            'Content-Type': fileType
+          }
+        }
+      );
+  }
+
 }

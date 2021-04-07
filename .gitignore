@@ -2,4 +2,6 @@
 /backends/assets/videos
 /backends/node_modules
 /node_modules
+/package-lock.json
 /backends/nodemon.json
+/backends/package-lock.json
