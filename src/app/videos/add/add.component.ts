@@ -73,6 +73,10 @@ export class AddComponent implements OnInit {
               formData.append('fileName', this.selectedFiles[0].name);
               formData.append('parts', JSON.stringify(uploadPartsArray));
               formData.append('uploadId', this.uploadId);
+              formData.append('video', this.selectedFiles[0]);
+              formData.append('video_file', this.selectedFiles[0].name);
+              formData.append('video_title', this.f.video_title.value);
+              formData.append('video_type', this.selectedFiles[0].type);
               await this.videoService.completeUpload(formData)
               .subscribe(
                   data => {
@@ -96,9 +100,8 @@ export class AddComponent implements OnInit {
 
     this.loading = true;
     const formData = new FormData();
-    formData.append('video', this.selectedFiles[0]);
     formData.append('video_file', this.selectedFiles[0].name);
-    //formData.append('video_title', this.f.video_title.value);
+    formData.append('video', this.selectedFiles[0]);
     formData.append('video_type', this.selectedFiles[0].type);
     // upload video
     // this.videoService.upload(formData)
@@ -115,7 +118,7 @@ export class AddComponent implements OnInit {
         async(data) => {
           //this.toastr.success('Video Uploaded.', 'Success');
           //this.router.navigate(['/videos']);
-          await this.uploadMultiPartFile(data.data.uploadId)
+          await this.uploadMultiPartFile(data.data.uploadId);
         }, err => {
           this.toastr.error('Unable to start Video Upload. Please, try again later.', 'Error');
           this.loading = false;

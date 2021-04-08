@@ -9,6 +9,7 @@ const videoSchema = new Schema({
   VideoID: { type: Number, required: true, unique: true },
   VideoTitle: { type: String, required: true },
   VideoType: { type: String, required: true },
+  VideoFile: { type: String, required: true },
   VideoLink: { type: String, required: true },
   VideoHash: { type: String, required: true },
   createdOn: { type: Date, default: Date.now },

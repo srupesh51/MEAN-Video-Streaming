@@ -64,13 +64,14 @@ export class UpdateComponent implements OnInit {
       return;
     }
 
-    let videoLink = this.video.VideoLink;
-    videoLink = videoLink.toString().split("/");
-    const fileName = videoLink[videoLink.length - 1];
+    let videoType = this.video.VideoType;
+    videoType = videoType.toString().split("/");
+    const fileName = this.video.VideoFile + "." + videoType[videoType.length - 1];
 
     this.loading = true;
     const formData = new FormData();
     formData.append('video', this.selectedFiles[0]);
+    formData.append('video_file', this.selectedFiles[0].name);
     formData.append('video_title', this.f.video_title.value);
     formData.append('video_type', this.selectedFiles[0].type);
     formData.append("video_link", fileName);
@@ -85,5 +86,5 @@ export class UpdateComponent implements OnInit {
           this.toastr.error('Unable to update video. Please, try again later.', 'Error');
           this.loading = false;
         });
-  }
+    }
 }

@@ -29,21 +29,56 @@ exports.getVideo = (req, res, next) => {
   });
 }
 
-exports.startUpload = (req, res, next) => {
-   awsFileService.createMultiPartUpload(req.body.video_file,
-    req.body.video_type).then((success) => {
-      res.status(200).json({
+exports.startUpdate = async(req, res, next) => {
+
+}
+
+exports.startUpload = async(req, res, next) => {
+  const readFile = util.promisify(fs.readFile);
+  let fileData = undefined;
+  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
+    fileData = data;
+  }).catch((err) => {
+    console.log(err);
+  });
+
+  let videoHash = undefined;
+  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
+    videoHash = hash;
+    console.log(`The MD5 sum is: ${hash}`)
+  }).catch((err) => {
+    console.log(err);
+  });
+
+  let videoResult = false;
+  await liveVideos.findOne({ VideoHash: videoHash }).then((response) => {
+    console.log(response);
+    if (response !== undefined && response !== null) {
+      videoResult = true;
+    }
+  });
+  if(videoResult) {
+      return res.status(400).json({
         data: {
-          uploadId: success.UploadId
+          message: "Sorry! This Video Already Exists. Please Upload a Different Video"
         }
       });
-    }).catch((err) => {
-        return res.status(500).json({
+} else {
+    await awsFileService.createMultiPartUpload(req.body.video_file,
+      req.body.video_type).then((success) => {
+        res.status(200).json({
           data: {
-            message: err.message
+            uploadId: success.UploadId
           }
-        })
-    });
+        });
+      }).catch((err) => {
+          return res.status(500).json({
+            data: {
+              message: err.message
+            }
+          })
+      });
+   }
 }
 
 exports.getUploadUrl = (req, res, next) => {
@@ -65,21 +100,39 @@ exports.getUploadUrl = (req, res, next) => {
     });
 }
 
-exports.completeUpload = (req, res, next) => {
-  awsFileService.completeMultiPartUpload(req.body.fileName, {
+exports.completeUpload = async(req, res, next) => {
+    let videoLink = undefined;
+    await awsFileService.completeMultiPartUpload(req.body.fileName, {
       Parts: JSON.parse(req.body.parts),
       UploadId: req.body.uploadId
     }).then((success) => {
-      res.status(200).json({
-        data: success
-      });
+      videoLink = success.Location;
     }).catch((err) => {
-       return res.status(500).json({
+      return res.status(500).json({
           data: {
             message: err.message
           }
         })
     });
+    let liveVideoData = new liveVideos();
+    liveVideoData.VideoTitle = req.body.video_title;
+    liveVideoData.VideoType = req.body.video_type;
+    liveVideoData.VideoFile = req.body.video_file;
+    liveVideoData.VideoLink = videoLink;
+    liveVideoData.VideoHash = videoHash;
+    await liveVideoData.save().then(() => {
+      res.status(200).json({
+        data: {
+          message: "Successfully Saved Video"
+        }
+      });
+    }).catch((err) => {
+      return res.status(500).json({
+        data: {
+          message: err.message
+        }
+      })
+   });
 }
 
 exports.uploadVideo = async (req, res, next) => {
@@ -131,6 +184,7 @@ exports.uploadVideo = async (req, res, next) => {
       let liveVideoData = new liveVideos();
       liveVideoData.VideoTitle = req.body.video_title;
       liveVideoData.VideoType = req.body.video_type;
+      liveVideoData.VideoFile = req.body.video_file;
       liveVideoData.VideoLink = videoLink;
       liveVideoData.VideoHash = videoHash;
       await liveVideoData.save().then(() => {
@@ -160,9 +214,8 @@ exports.uploadVideo = async (req, res, next) => {
 exports.downloadVideo = (req, res, next) => {
   liveVideos.findOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async(videoData) => {
     if (videoData !== undefined) {
-      let videoLink = videoData.toObject().VideoLink;
-      videoLink = videoLink.toString().split("/");
-      const fileName = videoLink[videoLink.length - 1];
+      const videoFile = videoData.toObject().VideoFile;
+      const fileName = videoFile;
       const filePath = path.join(process.cwd(), "/", process.env.VIDEO_PATH, fileName);
       res.sendFile(filePath);
     } else {
@@ -184,9 +237,8 @@ exports.downloadVideo = (req, res, next) => {
 exports.getVideoData = (req, res, next) => {
   liveVideos.findOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async (videoData) => {
     if (videoData !== undefined) {
-      let videoLink = videoData.toObject().VideoLink;
-      videoLink = videoLink.toString().split("/");
-      const fileName = videoLink[videoLink.length - 1];
+      const videoFile = videoData.toObject().VideoFile;
+      const fileName = videoFile;
       const filePath = path.join(process.cwd(), "/", process.env.VIDEO_PATH, fileName);
       res.sendFile(filePath);
     } else {
@@ -235,6 +287,7 @@ exports.updateVideo = async (req, res, next) => {
             {
               "VideoTitle": req.body.video_title,
               "VideoType": req.body.video_type,
+              "VideoFile": req.body.video_file,
               "VideoLink": videoLink,
               "VideoHash": videoHash
             },
@@ -290,10 +343,9 @@ exports.deleteVideo = async (req, res, next) => {
   liveVideos.findOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async (videoData) => {
     if (videoData !== undefined) {
 
-      let videoLink = videoData.toObject().VideoLink;
-      videoLink = videoLink.toString().split("/");
-      const fileName = videoLink[videoLink.length - 1];
-
+      const videoFile = videoData.toObject().VideoFile;
+      const fileName = videoFile;
+      
       await awsFileService.delete(fileName).then(success => {
         console.log(success);
       }).catch(err => {
