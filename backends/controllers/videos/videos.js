@@ -30,7 +30,51 @@ exports.getVideo = (req, res, next) => {
 }
 
 exports.startUpdate = async(req, res, next) => {
+  const readFile = util.promisify(fs.readFile);
+  let fileData = undefined;
+  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
+    fileData = data;
+  }).catch((err) => {
+    console.log(err);
+  });
 
+  let videoHash = undefined;
+  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
+    videoHash = hash;
+    console.log(`The MD5 sum is: ${hash}`)
+  }).catch((err) => {
+    console.log(err);
+  });
+
+  let videoResult = false;
+  await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
+    console.log(response);
+    if (response !== undefined && response !== null) {
+      videoResult = true;
+    }
+  });
+  if(videoResult) {
+      return res.status(400).json({
+        data: {
+          message: "Sorry! This Video Already Exists. Please Upload a Different Video"
+        }
+      });
+} else {
+    await awsFileService.createMultiPartUpload(req.body.video_file,
+      req.body.video_type).then((success) => {
+        res.status(200).json({
+          data: {
+            uploadId: success.UploadId
+          }
+        });
+      }).catch((err) => {
+          return res.status(500).json({
+            data: {
+              message: err.message
+            }
+          })
+      });
+   }
 }
 
 exports.startUpload = async(req, res, next) => {
@@ -51,12 +95,13 @@ exports.startUpload = async(req, res, next) => {
   });
 
   let videoResult = false;
-  await liveVideos.findOne({ VideoHash: videoHash }).then((response) => {
+  await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
     console.log(response);
     if (response !== undefined && response !== null) {
       videoResult = true;
     }
   });
+
   if(videoResult) {
       return res.status(400).json({
         data: {
@@ -100,7 +145,100 @@ exports.getUploadUrl = (req, res, next) => {
     });
 }
 
+exports.completeUpdate = async(req, res, next) => {
+  const readFile = util.promisify(fs.readFile);
+  let fileData = undefined;
+  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
+    fileData = data;
+  }).catch((err) => {
+    console.log(err);
+  });
+
+  let videoHash = undefined;
+  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
+    videoHash = hash;
+    console.log(`The MD5 sum is: ${hash}`)
+  }).catch((err) => {
+    console.log(err);
+  });
+
+  await awsFileService.delete(req.body.video_link).then(async(success) => {
+
+    let videoLink = undefined;
+    await awsFileService.completeMultiPartUpload(req.body.fileName, {
+      Parts: JSON.parse(req.body.parts),
+      UploadId: req.body.uploadId
+    }).then((success) => {
+      videoLink = success.Location;
+    }).catch((err) => {
+      return res.status(500).json({
+          data: {
+            message: err.message
+          }
+        })
+    });
+    
+    const fileName = req.body.video_link;
+    const unlinkFile = util.promisify(fs.unlink);
+    const filePath = process.cwd() + "/" + process.env.VIDEO_PATH + fileName;
+
+    await unlinkFile(filePath).then(success => {
+      console.log(success);
+    }).catch(err => {
+      console.log(err);
+    });
+
+    await liveVideos.findOneAndUpdate({ "_id": req.params.id.toString() },
+      {
+        "VideoTitle": req.body.video_title,
+        "VideoType": req.body.video_type,
+        "VideoFile": req.body.video_file,
+        "VideoLink": videoLink,
+        "VideoHash": videoHash
+      },
+      {
+        new: true
+      }).then(() => {
+        res.status(200).json({
+          data: {
+            message: "Successfully Updated Video"
+          }
+        });
+      }).catch((err) => {
+        return res.status(500).json({
+          data: {
+            message: err.message
+          }
+        })
+     });
+
+  }).catch((err) => {
+    return res.status(500).json({
+      data: {
+        message: err.message
+      }
+    })
+  });
+
+}
+
 exports.completeUpload = async(req, res, next) => {
+    const readFile = util.promisify(fs.readFile);
+    let fileData = undefined;
+    await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
+      fileData = data;
+    }).catch((err) => {
+      console.log(err);
+    });
+
+    let videoHash = undefined;
+    await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
+      videoHash = hash;
+      console.log(`The MD5 sum is: ${hash}`)
+    }).catch((err) => {
+      console.log(err);
+    });
+
     let videoLink = undefined;
     await awsFileService.completeMultiPartUpload(req.body.fileName, {
       Parts: JSON.parse(req.body.parts),
@@ -157,6 +295,17 @@ exports.uploadVideo = async (req, res, next) => {
   await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
     console.log(response);
     if (response !== undefined && response !== null) {
+      const videoFile = videoData.toObject().VideoFile;
+      const fileName = videoFile;
+      const unlinkFile = util.promisify(fs.unlink);
+      const filePath = process.cwd() + "/" + process.env.VIDEO_PATH + fileName;
+
+      await unlinkFile(filePath).then(success => {
+        console.log(success);
+      }).catch(err => {
+        console.log(err);
+      });
+
       res.status(400).json({
         data: {
           message: "Sorry! This Video Already Exists. Please Upload a Different Video"

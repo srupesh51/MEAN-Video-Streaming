@@ -14,4 +14,6 @@ router.post('/start-upload', imageUpload({ fieldName: 'video', uploadPath: proce
 router.put('/get-upload-url',imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.getUploadUrl);
 router.put('/complete-upload', imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.completeUpload);
 router.post('/start-update', imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.startUpdate);
+router.put('/complete-update/:id', imageUpload({ fieldName: 'video', uploadPath: process.env.VIDEO_PATH}), videoController.completeUpdate);
+
 module.exports = router;

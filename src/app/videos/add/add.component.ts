@@ -24,7 +24,6 @@ export class AddComponent implements OnInit {
       video_title: [null, Validators.required],
       video_file: '',
       video: [null, Validators.required],
-      uploadId: '',
       parts: [],
       partNumber: '',
       fileName: ''
@@ -38,7 +37,7 @@ export class AddComponent implements OnInit {
   }
 
   async uploadMultiPartFile(uploadId) {
-    console.log('Inside uploadMultipartFile')
+      console.log('Inside uploadMultipartFile')
       this.uploadId = uploadId;
       const CHUNK_SIZE = 10000000; // 10MB
       const fileSize = this.selectedFiles[0].size;

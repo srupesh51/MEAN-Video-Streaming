@@ -53,6 +53,14 @@ export class VideoService {
     return this.http.post<any>(this.API_URL + 'videos/start-upload', formData);
   }
 
+  startUpdate(formData: any): Observable<any> {
+    return this.http.post<any>(this.API_URL + 'videos/start-update', formData);
+  }
+
+  completeUpdate(id: String, formData: any) : Observable<any> {
+    return this.http.put<any>(this.API_URL + 'videos/complete-update/'+ id, formData);
+  }
+
   getUploadUrl(formData: any) {
     //return this.http.put<any>(this.API_URL + 'videos/get-upload-url', formData);
     return axios.put(this.API_URL + 'videos/get-upload-url', formData);
