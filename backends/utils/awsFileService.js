@@ -21,10 +21,10 @@ exports.createMultiPartUpload = (fileName, fileType) => {
   fileParams.ACL = 'public-read';
   fileParams.CacheControl = 'max-age=0';
   return s3Config.createMultipartUpload(fileParams).promise().then((res) => {
-    console.log(" Successfully created MultiPart Upload " + fileName + " to AWS ");
+    console.log(" Successfully created MultiPart Upload for File: " + fileName + " to AWS ");
     return res;
   }).catch((err) => {
-    console.log(" Failed to create MultiPart Upload " + fileName + " to AWS ");
+    console.log(" Failed to create MultiPart Upload for File: " + fileName + " to AWS ");
     return err;
   });
 }
@@ -32,16 +32,15 @@ exports.createMultiPartUpload = (fileName, fileType) => {
 exports.completeMultiPartUpload = (fileName, params) => {
   const s3Config = getAWSConfig();
   let fileParams = getAWSDefaultParams(fileName);
-  console.log(params);
   fileParams.MultipartUpload =   {
       'Parts': params.Parts
   };
   fileParams.UploadId = params.UploadId;
   return s3Config.completeMultipartUpload(fileParams).promise().then((res) => {
-    console.log(" Successfully completed MultiPart Upload " + fileName + " to AWS ");
+    console.log(" Successfully completed MultiPart Upload for File: " + fileName + " to AWS ");
     return res;
   }).catch((err) => {
-    console.log(" Failed to complete MultiPart Upload " + fileName + " to AWS ");
+    console.log(" Failed to complete MultiPart Upload for File: " + fileName + " to AWS ");
     return err;
   });
 }
@@ -58,27 +57,27 @@ exports.signedUrl = (fileName, params) => {
       });
   });
   return getSignedUrlPromise('uploadPart',fileParams).then((res) => {
-    console.log(" Retrieved Signed Url " + fileName + " to AWS ");
+    console.log(" Retrieved Signed Url for File: " + fileName + " from AWS ");
     return res;
   }).catch((err) => {
-    console.log(" Failed to get signed Url " + fileName + " to AWS ");
+    console.log(" Failed to get signed Url for File: " + fileName + " from AWS ");
     return err;
   });
 }
 
-exports.upload = (fileName, fileType, fileData) => {
+exports.upload = (fileName, fileType, fileData, options) => {
   const s3Config = getAWSConfig();
   let params = getAWSDefaultParams(fileName);
   params.Body = fileData;
   params.ContentType = fileType;
   params.ACL = 'public-read';
   params.CacheControl = 'max-age=0';
-  return s3Config.upload(params).promise().then((res) => {
+  return s3Config.upload(params, options).promise().then((res) => {
     // console.log(" Successfully uploaded " + fileName + " with " + filePath + " to AWS ");
-    console.log(" Successfully uploaded " + fileName + " to AWS ");
+    console.log(" Successfully uploaded File: " + fileName + " to AWS ");
     return res;
   }).catch((err) => {
-    console.log(" Failed to Upload " + fileName + " to AWS ");
+    console.log(" Failed to Upload File: " + fileName + " to AWS ");
     return err;
   });
 }
@@ -88,10 +87,10 @@ exports.delete = (fileName) => {
   const params = getAWSDefaultParams(fileName);
   return s3Config.deleteObject(params).promise().then((res) => {
     // console.log(" Successfully uploaded " + fileName + " with " + filePath + " to AWS ");
-    console.log(" Successfully removed " + fileName + " to AWS ");
+    console.log(" Successfully removed File: " + fileName + " from AWS ");
     return res;
   }).catch((err) => {
-    console.log(" Failed to remove " + fileName + " to AWS ");
+    console.log(" Failed to remove File: " + fileName + " from AWS ");
     return err;
   });
 }

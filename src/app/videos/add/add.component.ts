@@ -102,25 +102,27 @@ export class AddComponent implements OnInit {
     formData.append('video_file', this.selectedFiles[0].name);
     formData.append('video', this.selectedFiles[0]);
     formData.append('video_type', this.selectedFiles[0].type);
+    formData.append('video_title', this.f.video_title.value);
+
     // upload video
-    // this.videoService.upload(formData)
-    //   .subscribe(
-    //     data => {
-    //       this.toastr.success('Video Uploaded.', 'Success');
-    //       this.router.navigate(['/videos']);
-    //     }, err => {
-    //       this.toastr.error('Unable to upload video. Please, try again later.', 'Error');
-    //       this.loading = false;
-    //     });
-    this.videoService.startUpload(formData)
+    this.videoService.upload(formData)
       .subscribe(
-        async(data) => {
-          //this.toastr.success('Video Uploaded.', 'Success');
-          //this.router.navigate(['/videos']);
-          await this.uploadMultiPartFile(data.data.uploadId);
+        data => {
+          this.toastr.success('Video Uploaded.', 'Success');
+          this.router.navigate(['/videos']);
         }, err => {
-          this.toastr.error('Unable to start Video Upload. Please, try again later.', 'Error');
+          this.toastr.error('Unable to upload video. Please, try again later.', 'Error');
           this.loading = false;
         });
+    // this.videoService.startUpload(formData)
+    //   .subscribe(
+    //     async(data) => {
+    //       //this.toastr.success('Video Uploaded.', 'Success');
+    //       //this.router.navigate(['/videos']);
+    //       await this.uploadMultiPartFile(data.data.uploadId);
+    //     }, err => {
+    //       this.toastr.error('Unable to start Video Upload. Please, try again later.', 'Error');
+    //       this.loading = false;
+    //     });
    }
 }

@@ -130,15 +130,28 @@ export class UpdateComponent implements OnInit {
     formData.append('video', this.selectedFiles[0]);
     formData.append('video_file', this.selectedFiles[0].name);
     formData.append('video_type', this.selectedFiles[0].type);
+    formData.append('video_title', this.f.video_title.value);
+    formData.append("video_link", this.video.VideoFile);
 
-    // update video
-    this.videoService.startUpdate(formData)
-      .subscribe(
-        async(data) => {
-          await this.uploadMultiPartFile(data.data.uploadId);
+    this.videoService.update(this.videoId,
+      formData).subscribe(
+        data => {
+          this.toastr.success('Video Updated.', 'Success');
+          this.router.navigate(['/videos']);
         }, err => {
           this.toastr.error('Unable to update video. Please, try again later.', 'Error');
           this.loading = false;
         });
+
+    // update video
+    // this.videoService.startUpdate(formData)
+    //   .subscribe(
+    //     async(data) => {
+    //       await this.uploadMultiPartFile(data.data.uploadId);
+    //     }, err => {
+    //       this.toastr.error('Unable to update video. Please, try again later.', 'Error');
+    //       this.loading = false;
+    //     });
+    // }
     }
 }

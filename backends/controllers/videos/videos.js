@@ -1,9 +1,10 @@
-const liveVideos = require("../../models/videos/videos");
+const liveVideos = require("./../../models/videos/videos");
 const awsFileService = require('./../../utils/awsFileService'); 
 const fs = require('fs');
 const util = require('util');
 const md5File = require('md5-file');
 const path = require('path');
+const videoHandler = require('./../../utils/videoHandler');
 
 exports.getVideo = (req, res, next) => {
   liveVideos.findOne({"_id": req.params.id.toString()}).sort({ "createdOn": -1 }).then((videoData) => {
@@ -30,29 +31,12 @@ exports.getVideo = (req, res, next) => {
 }
 
 exports.startUpdate = async(req, res, next) => {
-  const readFile = util.promisify(fs.readFile);
-  let fileData = undefined;
-  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
-    fileData = data;
-  }).catch((err) => {
-    console.log(err);
-  });
 
-  let videoHash = undefined;
-  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
-    videoHash = hash;
-    console.log(`The MD5 sum is: ${hash}`)
-  }).catch((err) => {
-    console.log(err);
-  });
+  const videoHash = await videoHandler.getMD5(req.file.originalname,
+    process.env.VIDEO_PATH);
 
-  let videoResult = false;
-  await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
-    console.log(response);
-    if (response !== undefined && response !== null) {
-      videoResult = true;
-    }
-  });
+  const videoResult = await videoHandler.checkMD5(videoHash);
+
   if(videoResult) {
       return res.status(400).json({
         data: {
@@ -78,37 +62,19 @@ exports.startUpdate = async(req, res, next) => {
 }
 
 exports.startUpload = async(req, res, next) => {
-  const readFile = util.promisify(fs.readFile);
-  let fileData = undefined;
-  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
-    fileData = data;
-  }).catch((err) => {
-    console.log(err);
-  });
 
-  let videoHash = undefined;
-  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
-    videoHash = hash;
-    console.log(`The MD5 sum is: ${hash}`)
-  }).catch((err) => {
-    console.log(err);
-  });
+  const videoHash = await videoHandler.getMD5(req.file.originalname,
+    process.env.VIDEO_PATH);
 
-  let videoResult = false;
-  await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
-    console.log(response);
-    if (response !== undefined && response !== null) {
-      videoResult = true;
-    }
-  });
-
+  const videoResult = await videoHandler.checkMD5(videoHash);
+  
   if(videoResult) {
       return res.status(400).json({
         data: {
           message: "Sorry! This Video Already Exists. Please Upload a Different Video"
         }
       });
-} else {
+  } else {
     await awsFileService.createMultiPartUpload(req.body.video_file,
       req.body.video_type).then((success) => {
         res.status(200).json({
@@ -146,21 +112,9 @@ exports.getUploadUrl = (req, res, next) => {
 }
 
 exports.completeUpdate = async(req, res, next) => {
-  const readFile = util.promisify(fs.readFile);
-  let fileData = undefined;
-  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
-    fileData = data;
-  }).catch((err) => {
-    console.log(err);
-  });
 
-  let videoHash = undefined;
-  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
-    videoHash = hash;
-    console.log(`The MD5 sum is: ${hash}`)
-  }).catch((err) => {
-    console.log(err);
-  });
+  const videoHash = await videoHandler.getMD5(req.file.originalname,
+    process.env.VIDEO_PATH);
 
   await awsFileService.delete(req.body.video_link).then(async(success) => {
 
@@ -179,14 +133,9 @@ exports.completeUpdate = async(req, res, next) => {
     });
     
     const fileName = req.body.video_link;
-    const unlinkFile = util.promisify(fs.unlink);
-    const filePath = process.cwd() + "/" + process.env.VIDEO_PATH + fileName;
 
-    await unlinkFile(filePath).then(success => {
-      console.log(success);
-    }).catch(err => {
-      console.log(err);
-    });
+    await videoHandler.removeFile(fileName, process.env.VIDEO_PATH);
+
 
     await liveVideos.findOneAndUpdate({ "_id": req.params.id.toString() },
       {
@@ -219,25 +168,12 @@ exports.completeUpdate = async(req, res, next) => {
       }
     })
   });
-
 }
 
 exports.completeUpload = async(req, res, next) => {
-    const readFile = util.promisify(fs.readFile);
-    let fileData = undefined;
-    await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
-      fileData = data;
-    }).catch((err) => {
-      console.log(err);
-    });
 
-    let videoHash = undefined;
-    await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
-      videoHash = hash;
-      console.log(`The MD5 sum is: ${hash}`)
-    }).catch((err) => {
-      console.log(err);
-    });
+  const videoHash = await videoHandler.getMD5(req.file.originalname,
+    process.env.VIDEO_PATH);
 
     let videoLink = undefined;
     await awsFileService.completeMultiPartUpload(req.body.fileName, {
@@ -284,27 +220,12 @@ exports.uploadVideo = async (req, res, next) => {
     console.log(err);
   });
 
-  let videoHash = undefined;
-  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
-    videoHash = hash;
-    console.log(`The MD5 sum is: ${hash}`)
-  }).catch((err) => {
-    console.log(err);
-  });
+  const videoHash = await videoHandler.getMD5(req.file.originalname,
+    process.env.VIDEO_PATH);
 
   await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
     console.log(response);
     if (response !== undefined && response !== null) {
-      const videoFile = videoData.toObject().VideoFile;
-      const fileName = videoFile;
-      const unlinkFile = util.promisify(fs.unlink);
-      const filePath = process.cwd() + "/" + process.env.VIDEO_PATH + fileName;
-
-      await unlinkFile(filePath).then(success => {
-        console.log(success);
-      }).catch(err => {
-        console.log(err);
-      });
 
       res.status(400).json({
         data: {
@@ -314,11 +235,9 @@ exports.uploadVideo = async (req, res, next) => {
     } else {
 
       let videoLink = undefined;
-      const options = {
-        partSize: 10 * 1024 * 1024,
-        queueSize: 5,
-      };
-      await awsFileService.upload(req.file.originalname, req.body.video_type, fileData, options).then(success => {
+      const options = { partSize: 5 * 1024 * 1024, queueSize: 10 };  
+      await awsFileService.upload(req.file.originalname, req.body.video_type, fileData,
+        options).then(success => {
         console.log(success);
         videoLink = success.Location;
       }).catch(err => {
@@ -407,6 +326,7 @@ exports.getVideoData = (req, res, next) => {
 }
 
 exports.updateVideo = async (req, res, next) => {
+
   const readFile = util.promisify(fs.readFile);
   let fileData = undefined;
   await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
@@ -415,13 +335,8 @@ exports.updateVideo = async (req, res, next) => {
     console.log(err);
   });
 
-  let videoHash = undefined;
-  await md5File(process.cwd() + "/" + req.file.filename).then((hash) => {
-    videoHash = hash;
-    console.log(`The MD5 sum is: ${hash}`)
-  }).catch((err) => {
-    console.log(err);
-  });
+  const videoHash = await videoHandler.getMD5(req.file.originalname,
+    process.env.VIDEO_PATH);
 
   await liveVideos.findOne({ VideoHash: videoHash }).then(async (response) => {
     console.log(response);
@@ -429,7 +344,11 @@ exports.updateVideo = async (req, res, next) => {
       await awsFileService.delete(req.body.video_link).then(async(success) => {
         console.log(success);
         let videoLink = undefined;
-        await awsFileService.upload(req.file.originalname, req.body.video_type, fileData).then(success => {
+        await videoHandler.removeFile(req.body.video_link,
+          process.env.VIDEO_PATH);
+        const options = { partSize: 5 * 1024 * 1024, queueSize: 10 };   
+        await awsFileService.upload(req.file.originalname, req.body.video_type, fileData,
+           options).then(success => {
           console.log(success);
           videoLink = success.Location;
           liveVideos.findOneAndUpdate({ "_id": req.params.id.toString() },
@@ -501,14 +420,7 @@ exports.deleteVideo = async (req, res, next) => {
         console.log(err);
       });
 
-      const unlinkFile = util.promisify(fs.unlink);
-      const filePath = process.cwd() + "/" + process.env.VIDEO_PATH + fileName;
-
-      await unlinkFile(filePath).then(success => {
-        console.log(success);
-      }).catch(err => {
-        console.log(err);
-      });
+      await videoHandler.removeFile(fileName, process.env.VIDEO_PATH);
 
       await liveVideos.deleteOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async () => {
         res.status(200).json({
