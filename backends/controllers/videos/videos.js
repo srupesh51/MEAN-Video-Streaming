@@ -248,26 +248,37 @@ exports.uploadVideo = async (req, res, next) => {
           }
         });
       });
-
-      let liveVideoData = new liveVideos();
-      liveVideoData.VideoTitle = req.body.video_title;
-      liveVideoData.VideoType = req.body.video_type;
-      liveVideoData.VideoFile = req.body.video_file;
-      liveVideoData.VideoLink = videoLink;
-      liveVideoData.VideoHash = videoHash;
-      await liveVideoData.save().then(() => {
-        res.status(200).json({
-          data: {
-            message: "Successfully Saved Video"
-          }
+      if(videoLink !== undefined) {
+        
+        let liveVideoData = new liveVideos();
+        liveVideoData.VideoTitle = req.body.video_title;
+        liveVideoData.VideoType = req.body.video_type;
+        liveVideoData.VideoFile = req.body.video_file;
+        liveVideoData.VideoLink = videoLink;
+        liveVideoData.VideoHash = videoHash;
+        await liveVideoData.save().then(() => {
+          res.status(200).json({
+            data: {
+              message: "Successfully Saved Video"
+            }
+          });
+        }).catch((err) => {
+          return res.status(500).json({
+            data: {
+              message: err.message
+            }
+          })
         });
-      }).catch((err) => {
-        return res.status(500).json({
-          data: {
-            message: err.message
-          }
-        })
-      });
+
+      } else {
+        await videoHandler.removeFile(req.file.originalname,
+          process.env.VIDEO_PATH);
+          res.status(400).json({
+            data: {
+              message: "Failed to upload your Video. Please try Later.."
+            }
+          });
+      }
     }
   }).catch(err => {
     console.log(err);
