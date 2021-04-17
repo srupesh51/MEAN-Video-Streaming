@@ -29,8 +29,7 @@ getFileLink = (fileName) => {
       privateKey);
       const twoDays = 2*24*60*60*1000;
       signer.getSignedUrl({url: process.env.AWS_CLOUDFRONT_URL + "/" + 
-     process.env.VIDEO_PATH + fileName, expires: Math.floor((Date.now() + twoDays)/1000),
-     ContentType: 'video/mp4'}, 
+     process.env.VIDEO_PATH + fileName, expires: Math.floor((Date.now() + twoDays)/1000)}, 
         (err, url) => {
         console.log(err);  
         err ? reject(err) : resolve(url);
