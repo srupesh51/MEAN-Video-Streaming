@@ -295,8 +295,15 @@ exports.downloadVideo = (req, res, next) => {
     if (videoData !== undefined) {
       const videoFile = videoData.toObject().VideoFile;
       const fileName = videoFile;
-      const filePath = path.join(process.cwd(), "/", process.env.VIDEO_PATH, fileName);
-      res.sendFile(filePath);
+      // const filePath = path.join(process.cwd(), "/", process.env.VIDEO_PATH, fileName);
+      // res.sendFile(filePath);
+      const response = await awsFileService.download(fileName);
+      
+      res.status(200).json({
+        data: {
+          message: {url: response}}
+      });
+      
     } else {
       res.status(400).json({
         data: {

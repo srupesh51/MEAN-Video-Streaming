@@ -35,12 +35,17 @@ export class WatchComponent implements OnInit {
   downloadVideo(): void {
     this.videoService.download(this.video._id)
       .subscribe(
-        data => {
+        async(data) => {
           console.log(data);
-          let videoLink = this.video.VideoLink;
-          videoLink = videoLink.toString().split("/");
-          const fileName = videoLink[videoLink.length - 1];
-          saveAs(data, fileName);
+          const response = await fetch(data.data.message.url);
+          const blob = await response.blob();
+
+          const file = new File([blob], this.video.VideoFile, {
+             type: this.video.VideoType
+          }); 
+
+          const fileName = this.video.VideoFile;
+          saveAs(file, fileName);
           this.toastr.success('Successfully Downloaded Video.', 'Success');
           this.router.navigate(['/videos']);
         }, err => {

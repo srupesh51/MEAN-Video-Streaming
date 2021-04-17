@@ -30,9 +30,7 @@ export class VideoService {
 
   // download video
   download(id: String): Observable<any> {
-    return this.http.get(this.API_URL + 'videos/download/' + id, {
-      responseType: 'blob'
-    });
+    return this.http.get<any>(this.API_URL + 'videos/download/' + id);
   }
 
   // delete video

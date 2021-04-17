@@ -1,0 +1,6 @@
+
+/assets/videos
+/node_modules
+/package-lock.json
+/nodemon.json
+/config/keys.js

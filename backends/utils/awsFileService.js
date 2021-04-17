@@ -1,4 +1,6 @@
 const AWS = require("aws-sdk");
+const keysConfig = require('./../config/keys');
+
 getAWSConfig = () => {
   return new AWS.S3({
     accessKeyId: process.env.AWS_CUSTOM_ACCESS_KEY_ID,
@@ -12,6 +14,28 @@ getAWSDefaultParams = (fileName) => {
     Bucket: process.env.AWS_CUSTOM_S3_BUCKET,
     Key: process.env.VIDEO_PATH + fileName
   };
+}
+
+exports.download = (fileName) => {
+  return getFileLink(fileName);
+}
+
+getFileLink = (fileName) => {
+  return new Promise(function (resolve, reject) {
+    
+    const privateKey = keysConfig.private_key;
+
+    const signer = new AWS.CloudFront.Signer(process.env.CLOUDFRONT_ACCESS_KEY_ID,
+      privateKey);
+      const twoDays = 2*24*60*60*1000;
+      signer.getSignedUrl({url: process.env.AWS_CLOUDFRONT_URL + "/" + 
+     process.env.VIDEO_PATH + fileName, expires: Math.floor((Date.now() + twoDays)/1000),
+     ContentType: 'video/mp4'}, 
+        (err, url) => {
+        console.log(err);  
+        err ? reject(err) : resolve(url);
+      });
+  });
 }
 
 exports.createMultiPartUpload = (fileName, fileType) => {
