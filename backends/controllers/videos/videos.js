@@ -1,34 +1,50 @@
 const liveVideos = require("./../../models/videos/videos");
-const cacheHandler = require("./../../cache/cacheHandler");
-const awsFileService = require('./../../utils/awsFileService'); 
+const awsFileService = require('./../../utils/awsFileService');
+const cacheHandler = require('./../../cache/cacheHandler'); 
 const fs = require('fs');
 const util = require('util');
+const redis = require("redis");
 const md5File = require('md5-file');
 const path = require('path');
 const videoHandler = require('./../../utils/videoHandler');
+const client = cacheHandler.getClient();
 
-exports.getVideo = (req, res, next) => {
-  liveVideos.findOne({"_id": req.params.id.toString()}).sort({ "createdOn": -1 }).then((videoData) => {
-    if (videoData !== undefined) {
+exports.getVideo = async(req, res, next) => {
+  let videos =  await cacheHandler.getEntry(client, req.params.id.toString());
+    console.log(videos);
+  if(videos !== null && videos !== undefined) {
+      videos = JSON.parse(videos);
+      console.log(videos);
+      videos.VideoID = parseInt(videos.VideoID);
       res.status(200).json({
         data: {
-          message: videoData
+          message: videos
         }
       });
-    } else {
-      res.status(400).json({
-        data: {
-          message: "Unable to retrieve Video. Hence Exiting!"
-        }
-      });
-    }
-  }).catch((err) => {
-    return res.status(500).json({
-      data: {
-        message: err.message
+  } else {
+      liveVideos.findOne({"_id": req.params.id.toString()}).sort({ "createdOn": -1 }).then(async(videoData) => {
+      
+        if (videoData !== undefined) {
+          res.status(200).json({
+            data: {
+              message: videoData
+            }
+          });
+      } else {
+        res.status(400).json({
+          data: {
+            message: "Unable to retrieve Video. Hence Exiting!"
+          }
+        });
       }
-    })
-  });
+    }).catch((err) => {
+      return res.status(500).json({
+        data: {
+          message: err.message
+        }
+      })
+    });
+  }
 }
 
 exports.startUpdate = async(req, res, next) => {
@@ -257,7 +273,16 @@ exports.uploadVideo = async (req, res, next) => {
         liveVideoData.VideoFile = req.body.video_file;
         liveVideoData.VideoLink = videoLink;
         liveVideoData.VideoHash = videoHash;
-        await liveVideoData.save().then(() => {
+        await liveVideoData.save().then(async(video) => {
+          // console.log(video);
+          // await cacheHandler.addEntry(client, 
+          //   video._id, video);
+        await cacheHandler.addEntry(client, req.params.id,
+        {"_id": video._id, "VideoTitle": video.VideoTitle,
+        "VideoType": video.VideoType, "VideoFile": 
+          video.VideoFile, "VideoLink": video.VideoLink,
+          "VideoHash": video.VideoHash, 
+        "createdOn": video.createdOn, "VideoID": video.VideoID.toString()});
           res.status(200).json({
             data: {
               message: "Successfully Saved Video"
@@ -473,26 +498,58 @@ exports.deleteVideo = async (req, res, next) => {
 }
 
 
-exports.listVideos = (req, res, next) => {
-  liveVideos.find({}).sort({ "createdOn": -1 }).then((videoList) => {
-    if (videoList !== undefined && videoList.length > 0) {
-      res.status(200).json({
-        data: {
-          message: videoList
-        }
+exports.listVideos = async(req, res, next) => {
+  let videos = await cacheHandler.getEntry(client, 
+    "videos");
+  console.log(videos, "LK");
+  if(videos !== null && videos !== undefined) {
+      videos = JSON.parse(videos);
+      videos.forEach((video) => {
+        video.VideoID = parseInt(video.VideoID);
       });
-    } else {
       res.status(200).json({
-        data: {
-          message: []
-        }
+          data: {
+                message: videos
+          }
       });
-    }
-  }).catch((err) => {
-    return res.status(500).json({
-      data: {
-        message: err.message
+  } else {
+    
+    liveVideos.find({}).sort({ "createdOn": -1 }).then(async(videoList) => {
+      if (videoList !== undefined && videoList.length > 0) {
+        let videoContent = [];
+        videoList.forEach((video) => {
+          videoContent.push({
+            "_id": video._id.toString(),
+            "VideoTitle": video.VideoTitle,
+            "VideoType": video.VideoType,
+            "VideoFile": video.VideoFile,
+            "VideoHash": video.VideoHash,
+            "VideoLink": video.VideoLink,
+            "createdOn": video.createdOn.toString(),
+            "VideoID": video.VideoID.toString()
+          })
+        });
+        await cacheHandler.addEntry(client, "videos", videoContent);
+        res.status(200).json({
+            data: {
+                  message: videoList
+            }
+        });
+      } else {
+        res.status(200).json({
+          data: {
+            message: []
+          }
+        });
       }
-    })
-  });
+    }).catch((err) => {
+      console.log(err);
+      return res.status(500).json({
+        data: {
+          message: err.message
+        }
+      })
+    });
+  }
+
 }

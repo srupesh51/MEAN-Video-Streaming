@@ -20,6 +20,6 @@ videoSchema.plugin(uniqueValidator);
 videoSchema.plugin(autoIncrement.plugin, { model: 'videoModel', field: 'VideoID', startAt: 500000, incrementBy: 1 });
 
 
-var videoModel = mongoose.model('Videos', videoSchema);
+const videoModel = mongoose.model('Videos', videoSchema);
 
 module.exports = videoModel;

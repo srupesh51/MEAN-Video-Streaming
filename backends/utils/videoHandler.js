@@ -42,7 +42,7 @@ exports.checkMD5 = async(md5Hash) => {
     await liveVideos.findOne({ VideoHash: md5Hash }).then(async(response) => {
         console.log(response);
         if (response !== undefined && response !== null) {
-        videoResult = true;
+            videoResult = true;
         }
     });
     return videoResult;

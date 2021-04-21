@@ -21,7 +21,7 @@ exports.download = (fileName) => {
 }
 
 getFileLink = (fileName) => {
-  return new Promise(function (resolve, reject) {
+  return new Promise((resolve, reject) => {
     
     const privateKey = keysConfig.private_key;
 
