@@ -29,17 +29,12 @@ exports.getEntry = async(client, key) => {
 }; 
 
 exports.removeEntry = async(client, key) => {
-    const keyBool =  await checkKey(key);
-    console.log(keyBool);
-    if(keyBool) {
-        return new Promise((resolve, reject) => {
-            client.delete(key, (err, val) => {
-                return err ? reject(err) : resolve(val);
-            });
-        });
-    } else {
-        return undefined;
-    }
+    const setAsync =  util.promisify(client.del).bind(client);
+    await setAsync(key).then((val) => {
+        console.log(val);
+    }).catch((err) => {
+        console.log(err);
+    });
 };
 
 exports.addEntry = async(client, key, value) => {
