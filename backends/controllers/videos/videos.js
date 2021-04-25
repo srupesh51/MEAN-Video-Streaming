@@ -286,7 +286,7 @@ exports.uploadVideo = async (req, res, next) => {
           console.log(videos, "L");
           let videoContent = [];
           if(videos !== undefined && videos !== null) {
-              videoContent = videos;
+              videoContent = JSON.parse(videos);
           }
           videoContent.push({"_id": video._id, "VideoTitle": video.VideoTitle,
           "VideoType": video.VideoType, "VideoFile": 
@@ -550,10 +550,10 @@ exports.deleteVideo = async (req, res, next) => {
               if(videos.length <= 1) {
                 await cacheHandler.removeEntry(client, "videos");
               } else {
+                videos.splice(videoIndex, 1);
                 await cacheHandler.addEntry(client, "videos", videos);
               }
-              delete videos[videoIndex];
-            }  
+           }  
         }
         await cacheHandler.removeEntry(client, req.params.id.toString());   
         res.status(200).json({
