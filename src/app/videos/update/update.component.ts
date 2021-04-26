@@ -131,8 +131,8 @@ export class UpdateComponent implements OnInit {
     formData.append('video_file', this.selectedFiles[0].name);
     formData.append('video_type', this.selectedFiles[0].type);
     formData.append('video_title', this.f.video_title.value);
-    formData.append("video_link", this.video.VideoFile);
-
+    formData.append("video_link", this.video.VideoLink);
+    
     this.videoService.update(this.videoId,
       formData).subscribe(
         data => {

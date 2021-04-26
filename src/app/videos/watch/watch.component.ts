@@ -44,7 +44,8 @@ export class WatchComponent implements OnInit {
              type: this.video.VideoType
           }); 
 
-          const fileName = this.video.VideoFile;
+          let fileName = this.video.VideoFile.toString().split('_');
+          fileName = fileName[fileName.length - 1];
           saveAs(file, fileName);
           this.toastr.success('Successfully Downloaded Video.', 'Success');
           this.router.navigate(['/videos']);

@@ -26,21 +26,7 @@ module.exports = function (options) {
     filename: async(req, file, cb) => {
       const name = file.originalname.toLowerCase().split(' ').join('-');
       const fileName = name;
-      const isFilePresent =  await videoHandler.checkFilePath(fileName, 
-        options.uploadPath);  
-      if(isFilePresent) {
-        return cb(null, ''); 
-      }
-      const md5Hash = await videoHandler.getMD5(fileName,
-        options.uploadPath);  
-      if(md5Hash !== undefined) {
-          const videoResult = await videoHandler.checkMD5(md5Hash);
-          if(videoResult) {
-            return cb(null, '');
-          }
-      } 
-      console.log("inside file"); 
-      return cb(null, options.uploadPath + fileName);
+      return cb(null, options.uploadPath + Date.now() + '_' + fileName);
     }
 
   });
@@ -50,7 +36,6 @@ module.exports = function (options) {
   });
 
   if(typeof options.noFileUpload !== 'undefined') {
-    console.log("inside");
     return imageLocalUpload.none();
   }
 

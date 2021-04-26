@@ -227,108 +227,93 @@ exports.completeUpload = async(req, res, next) => {
 }
 
 exports.uploadVideo = async (req, res, next) => {
-  /*console.log(req.file);*/
+ 
+  const fileData = await videoHandler.getFileData(req.file.filename);
 
-  const readFile = util.promisify(fs.readFile);
-  let fileData = undefined;
-  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
-    fileData = data;
-  }).catch((err) => {
-    console.log(err);
-  });
-
-  const videoHash = await videoHandler.getMD5(req.file.originalname,
-    process.env.VIDEO_PATH);
-
-  await liveVideos.findOne({ VideoHash: videoHash }).then(async(response) => {
-    console.log(response);
-    if (response !== undefined && response !== null) {
-
-      res.status(400).json({
-        data: {
-          message: "Sorry! This Video Already Exists. Please Upload a Different Video"
-        }
-      });
-    } else {
-
-      let videoLink = undefined;
-      const options = { partSize: 5 * 1024 * 1024, queueSize: 10 };  
-      await awsFileService.upload(req.file.originalname, req.body.video_type, fileData,
-        options).then(success => {
-        console.log(success);
-        videoLink = success.Location;
-      }).catch(err => {
-        console.log(err);
-        res.status(500).json({
+  const md5Hash = await videoHandler.getMD5(req.file.filename);  
+  if(md5Hash !== undefined) {
+      const videoResult = await videoHandler.checkMD5(md5Hash);
+      if(videoResult) {
+        await videoHandler.removeFile(req.file.filename); 
+        res.status(400).json({
           data: {
-            message: err.message
+            message: "Sorry! This Video Already Exists. Please Upload a Different Video"
           }
         });
-      });
-      if(videoLink !== undefined) {
-        
-        let liveVideoData = new liveVideos();
-        liveVideoData.VideoTitle = req.body.video_title;
-        liveVideoData.VideoType = req.body.video_type;
-        liveVideoData.VideoFile = req.body.video_file;
-        liveVideoData.VideoLink = videoLink;
-        liveVideoData.VideoHash = videoHash;
-        await liveVideoData.save().then(async(video) => {
-          console.log(video);
-          await cacheHandler.addEntry(client, 
-            video._id.toString(), {"_id": video._id, "VideoTitle": video.VideoTitle,
-            "VideoType": video.VideoType, "VideoFile": 
-              video.VideoFile, "VideoLink": video.VideoLink,
-              "VideoHash": video.VideoHash, 
-            "createdOn": video.createdOn, "VideoID": video.VideoID.toString()});
-          const videos = await cacheHandler.getEntry(client, 
-            "videos");
-          console.log(videos, "L");
-          let videoContent = [];
-          if(videos !== undefined && videos !== null) {
-              videoContent = JSON.parse(videos);
-          }
-          videoContent.push({"_id": video._id, "VideoTitle": video.VideoTitle,
-          "VideoType": video.VideoType, "VideoFile": 
-            video.VideoFile, "VideoLink": video.VideoLink,
-            "VideoHash": video.VideoHash, 
-          "createdOn": video.createdOn, "VideoID": video.VideoID.toString()});
-
-          await cacheHandler.addEntry(client, "videos",
-          videoContent);
-
-
-          res.status(200).json({
-            data: {
-              message: "Successfully Saved Video"
-            }
-          });
-        }).catch((err) => {
-          return res.status(500).json({
-            data: {
-              message: err.message
-            }
-          })
-        });
-
-      } else {
-        await videoHandler.removeFile(req.file.originalname,
-          process.env.VIDEO_PATH);
-          res.status(400).json({
-            data: {
-              message: "Failed to upload your Video. Please try Later.."
-            }
-          });
-      }
+       } else {
+        let videoLink = undefined;
+        const options = { partSize: 5 * 1024 * 1024, queueSize: 10 };
+        let fileName = req.file.filename;
+        fileName = fileName.toString().split('/');
+        fileName = fileName[fileName.length - 1];
+        await awsFileService.upload(fileName, req.body.video_type, fileData,
+           options).then(success => {
+           console.log(success);
+           videoLink = success.Location;
+         }).catch(err => {
+           console.log(err);
+           res.status(500).json({
+             data: {
+               message: err.message
+             }
+           });
+         });
+         if(videoLink !== undefined) {
+           const videoHash = md5Hash;
+           let liveVideoData = new liveVideos();
+           liveVideoData.VideoTitle = req.body.video_title;
+           liveVideoData.VideoType = req.body.video_type;
+           liveVideoData.VideoFile = req.body.video_file;
+           liveVideoData.VideoLink = videoLink;
+           liveVideoData.VideoHash = videoHash;
+           await liveVideoData.save().then(async(video) => {
+             console.log(video);
+             await cacheHandler.addEntry(client, 
+               video._id.toString(), {"_id": video._id, "VideoTitle": video.VideoTitle,
+               "VideoType": video.VideoType, "VideoFile": 
+                 video.VideoFile, "VideoLink": video.VideoLink,
+                 "VideoHash": video.VideoHash, 
+               "createdOn": video.createdOn, "VideoID": video.VideoID.toString()});
+             const videos = await cacheHandler.getEntry(client, 
+               "videos");
+             console.log(videos, "L");
+             let videoContent = [];
+             if(videos !== undefined && videos !== null) {
+                 videoContent = JSON.parse(videos);
+             }
+             videoContent.push({"_id": video._id, "VideoTitle": video.VideoTitle,
+             "VideoType": video.VideoType, "VideoFile": 
+               video.VideoFile, "VideoLink": video.VideoLink,
+               "VideoHash": video.VideoHash, 
+             "createdOn": video.createdOn, "VideoID": video.VideoID.toString()});
+   
+             await cacheHandler.addEntry(client, "videos",
+             videoContent);
+   
+   
+             res.status(200).json({
+               data: {
+                 message: "Successfully Saved Video"
+               }
+             });
+           }).catch((err) => {
+             return res.status(500).json({
+               data: {
+                 message: err.message
+               }
+             })
+           });
+   
+         } else {
+            await videoHandler.removeFile(req.file.filename);
+             res.status(400).json({
+               data: {
+                 message: "Failed to upload your Video. Please try Later.."
+               }
+            });
+         }
+       }
     }
-  }).catch(err => {
-    console.log(err);
-    res.status(500).json({
-      data: {
-        message: err.message
-      }
-    });
-  });
 }
 
 exports.downloadVideo = async(req, res, next) => {
@@ -338,8 +323,10 @@ exports.downloadVideo = async(req, res, next) => {
       videos = JSON.parse(videos);
       console.log(videos);
       videos.VideoID = parseInt(videos.VideoID);
-      const videoFile = videos.VideoFile;
-      const fileName = videoFile;
+      const videoFile = videos.VideoLink;
+      let fileName = videoFile;
+      fileName = fileName.toString().split('/');
+      fileName = fileName[fileName.length - 1];
       // const filePath = path.join(process.cwd(), "/", process.env.VIDEO_PATH, fileName);
       // res.sendFile(filePath);
       const response = await awsFileService.download(fileName);
@@ -352,8 +339,10 @@ exports.downloadVideo = async(req, res, next) => {
   } else {
     liveVideos.findOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async(videoData) => {
       if (videoData !== undefined) {
-        const videoFile = videoData.toObject().VideoFile;
-        const fileName = videoFile;
+        const videoFile = videoData.toObject().VideoLink;
+        let fileName = videoFile;
+        fileName = fileName.toString().split('/');
+        fileName = fileName[fileName.length - 1];
         // const filePath = path.join(process.cwd(), "/", process.env.VIDEO_PATH, fileName);
         // res.sendFile(filePath);
         const response = await awsFileService.download(fileName);
@@ -405,96 +394,120 @@ exports.getVideoData = (req, res, next) => {
 
 exports.updateVideo = async (req, res, next) => {
 
-  const readFile = util.promisify(fs.readFile);
-  let fileData = undefined;
-  await readFile(process.cwd() + "/" + req.file.filename).then((data) => {
-    fileData = data;
-  }).catch((err) => {
-    console.log(err);
-  });
+  const fileData = await videoHandler.getFileData(req.file.filename);
 
-  const videoHash = await videoHandler.getMD5(req.file.originalname,
-    process.env.VIDEO_PATH);
+  const videoHash = await videoHandler.getMD5(req.file.filename);  
 
-  await liveVideos.findOne({ VideoHash: videoHash }).then(async (response) => {
-    console.log(response);
-    if (response === undefined || response === null) {
-      await awsFileService.delete(req.body.video_link).then(async(success) => {
-        console.log(success);
-        let videoLink = undefined;
-        await videoHandler.removeFile(req.body.video_link,
-          process.env.VIDEO_PATH);
-        const options = { partSize: 5 * 1024 * 1024, queueSize: 10 };   
-        await awsFileService.upload(req.file.originalname, req.body.video_type, fileData,
-           options).then(success => {
-          console.log(success);
-          videoLink = success.Location;
-          liveVideos.findOneAndUpdate({ "_id": req.params.id.toString() },
-            {
-              "VideoTitle": req.body.video_title,
-              "VideoType": req.body.video_type,
-              "VideoFile": req.body.video_file,
-              "VideoLink": videoLink,
-              "VideoHash": videoHash
-            },
-            {
-              new: true
-            }).then(async(response) => {
-              const updateResponse = response.toObject();
-              let videos = await cacheHandler.getEntry(client, 
-                "videos");
-              if(videos !== null && videos !== undefined) {
-                videos = JSON.parse(videos);
-                console.log(videos);
-                const videoIndex = videos.findIndex(
-                  (video) => {
-                    return video._id.toString() === req.params.id.toString()
+  if(videoHash !== undefined) {
+    const videoResult = await videoHandler.checkMD5(videoHash);
+    if(videoResult) {
+      await videoHandler.removeFile(req.file.filename); 
+      res.status(400).json({
+        data: {
+          message: "Sorry! This Video Already Exists. Please Upload a Different Video"
+        }
+      });
+    } else {
+      await liveVideos.findOne({ VideoHash: videoHash }).then(async (response) => {
+        console.log(response);
+        if (response === undefined || response === null) {
+          await awsFileService.delete(req.body.video_link).then(async(success) => {
+            console.log(success);
+            let videoLink = undefined;
+            let fileName = req.body.video_link;
+            fileName = fileName.toString().split('/');
+            fileName = fileName[fileName.length - 1];
+            await videoHandler.removeFile( process.env.VIDEO_PATH + "/" +
+             fileName);
+            const options = { partSize: 5 * 1024 * 1024, queueSize: 10 };   
+            fileName = req.file.filename;
+            fileName = fileName.toString().split('/');
+            fileName = fileName[fileName.length - 1];
+            await awsFileService.upload(fileName, req.body.video_type, fileData,
+               options).then(success => {
+              console.log(success);
+              videoLink = success.Location;
+              liveVideos.findOneAndUpdate({ "_id": req.params.id.toString() },
+                {
+                  "VideoTitle": req.body.video_title,
+                  "VideoType": req.body.video_type,
+                  "VideoFile": req.body.video_file,
+                  "VideoLink": videoLink,
+                  "VideoHash": videoHash
+                },
+                {
+                  new: true
+                }).then(async(response) => {
+                  const updateResponse = response.toObject();
+                  let videos = await cacheHandler.getEntry(client, 
+                    "videos");
+                  if(videos !== null && videos !== undefined) {
+                    videos = JSON.parse(videos);
+                    console.log(videos);
+                    const videoIndex = videos.findIndex(
+                      (video) => {
+                        return video._id.toString() === req.params.id.toString()
+                    });
+                    console.log(videoIndex);
+                    if(videoIndex !== -1) {
+                      videos[videoIndex].VideoFile = updateResponse.VideoFile;
+                      videos[videoIndex].VideoType = updateResponse.VideoType;
+                      videos[videoIndex].VideoTitle = updateResponse.VideoTitle;
+                      videos[videoIndex].VideoLink = updateResponse.VideoLink;
+                      videos[videoIndex].VideoHash = updateResponse.VideoHash; 
+                      videos[videoIndex]._id = updateResponse._id.toString();
+                      videos[videoIndex].VideoID = updateResponse.VideoID.toString();
+                      videos[videoIndex].createdOn = updateResponse.createdOn.toString();
+                      await cacheHandler.addEntry(client, "videos", videos);
+                    } 
+                  }  
+                  
+                  await cacheHandler.addEntry(client, req.params.id.toString(), 
+                  {
+                    "_id": updateResponse._id.toString(),
+                    "VideoTitle": req.body.video_title,
+                    "VideoType": req.body.video_type,
+                    "VideoFile": req.body.video_file,
+                    "VideoID": updateResponse.VideoID.toString(),
+                    "VideoLink": videoLink,
+                    "VideoHash": videoHash,
+                    "createdOn": updateResponse.createdOn.toString(),
+                  });
+                  res.status(200).json({
+                    data: {
+                      message: "Successfully Updated Video"
+                    }
+                  });
+                }).catch((err) => {
+                  return res.status(500).json({
+                    data: {
+                      message: err.message
+                    }
+                  })
                 });
-                console.log(videoIndex);
-                if(videoIndex !== -1) {
-                  videos[videoIndex].VideoFile = updateResponse.VideoFile;
-                  videos[videoIndex].VideoType = updateResponse.VideoType;
-                  videos[videoIndex].VideoTitle = updateResponse.VideoTitle;
-                  videos[videoIndex].VideoLink = updateResponse.VideoLink;
-                  videos[videoIndex].VideoHash = updateResponse.VideoHash; 
-                  videos[videoIndex]._id = updateResponse._id.toString();
-                  videos[videoIndex].VideoID = updateResponse.VideoID.toString();
-                  videos[videoIndex].createdOn = updateResponse.createdOn.toString();
-                  await cacheHandler.addEntry(client, "videos", videos);
-                } 
-              }  
-              
-              await cacheHandler.addEntry(client, req.params.id.toString(), 
-              {
-                "_id": updateResponse._id.toString(),
-                "VideoTitle": req.body.video_title,
-                "VideoType": req.body.video_type,
-                "VideoFile": req.body.video_file,
-                "VideoID": updateResponse.VideoID.toString(),
-                "VideoLink": videoLink,
-                "VideoHash": videoHash,
-                "createdOn": updateResponse.createdOn.toString(),
-              });
-              res.status(200).json({
-                data: {
-                  message: "Successfully Updated Video"
-                }
-              });
-            }).catch((err) => {
-              return res.status(500).json({
+            }).catch(err => {
+              console.log(err);
+              res.status(500).json({
                 data: {
                   message: err.message
                 }
-              })
+              });
             });
-        }).catch(err => {
-          console.log(err);
-          res.status(500).json({
+          }).catch(err => {
+            console.log(err);
+            res.status(500).json({
+              data: {
+                message: err.message
+              }
+            });
+          });
+        } else {
+          res.status(400).json({
             data: {
-              message: err.message
+              message: "Sorry! This Video Already Exists. Please Upload a Different Video"
             }
           });
-        });
+        }
       }).catch(err => {
         console.log(err);
         res.status(500).json({
@@ -503,21 +516,8 @@ exports.updateVideo = async (req, res, next) => {
           }
         });
       });
-    } else {
-      res.status(400).json({
-        data: {
-          message: "Sorry! This Video Already Exists. Please Upload a Different Video"
-        }
-      });
     }
-  }).catch(err => {
-    console.log(err);
-    res.status(500).json({
-      data: {
-        message: err.message
-      }
-    });
-  });
+  }
 }
 
 exports.deleteVideo = async (req, res, next) => {
@@ -525,20 +525,24 @@ exports.deleteVideo = async (req, res, next) => {
   liveVideos.findOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async (videoData) => {
     if (videoData !== undefined) {
 
-      const videoFile = videoData.toObject().VideoFile;
-      const fileName = videoFile;
-      
+      const videoFile = videoData.toObject().VideoLink;
+      let fileName = videoFile;
+      fileName = fileName.toString().split('/');
+      fileName = fileName[fileName.length - 1];
       await awsFileService.delete(fileName).then(success => {
         console.log(success);
       }).catch(err => {
         console.log(err);
       });
 
-      await videoHandler.removeFile(fileName, process.env.VIDEO_PATH);
-
       await liveVideos.deleteOne({ "_id": req.params.id.toString() }).sort({ "createdOn": -1 }).then(async () => {
+        
+        await videoHandler.removeFile(process.env.VIDEO_PATH + "/" +
+        fileName);
+
         let videos = await cacheHandler.getEntry(client, 
           "videos");
+
         if(videos !== undefined && videos !== null) {
             videos = JSON.parse(videos);
             const videoIndex = videos.findIndex(

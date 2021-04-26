@@ -3,9 +3,9 @@ const liveVideos = require("./../models/videos/videos");
 const fs = require('fs');
 const util = require('util');
 
-exports.getMD5 = async(fileName, filePath) => {
+exports.getMD5 = async(filePath) => {
     let videoHash = undefined;
-    await md5File(process.cwd() + "/" + filePath + fileName).then((hash) => {
+    await md5File(process.cwd() + "/" + filePath).then((hash) => {
         videoHash = hash;
         console.log(`The MD5 sum is: ${hash}`)
     }).catch((err) => {
@@ -26,10 +26,10 @@ exports.checkFilePath = async(fileName, filePath) => {
     return isFilePresent;
 }
 
-exports.getFileData = async(fileName, filePath) => {
+exports.getFileData = async(filePath) => {
     const readFile = util.promisify(fs.readFile);
     let fileData = undefined;
-    await readFile(process.cwd() + "/" + filePath + fileName).then((data) => {
+    await readFile(process.cwd() + "/" + filePath).then((data) => {
         fileData = data;
     }).catch((err) => {
         console.log(err);    
@@ -48,9 +48,9 @@ exports.checkMD5 = async(md5Hash) => {
     return videoResult;
 }
 
-exports.removeFile = async(fileName, filePath) => {
+exports.removeFile = async(filePath) => {
     const unlinkFile = util.promisify(fs.unlink);
-    await unlinkFile(process.cwd() + "/" + filePath + fileName).then(success => {
+    await unlinkFile(process.cwd() + "/" + filePath).then(success => {
         console.log(success);
     }).catch(err => {
         console.log(err);
